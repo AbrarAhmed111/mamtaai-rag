@@ -4,12 +4,20 @@ Configures the app, sets up CORS middleware, and mounts domain routers.
 All business logic is delegated to services and domain route handlers.
 """
 
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import get_settings
 from api.router import api_router
 
+# Configure clean logging for terminal output
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("App")
 settings = get_settings()
 
 app = FastAPI(

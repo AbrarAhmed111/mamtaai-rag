@@ -6,6 +6,7 @@ Encapsulates chatbot business logic:
 3. LLM Gateway invocation with automatic failover for product queries
 """
 
+import logging
 from typing import List
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 
@@ -20,6 +21,7 @@ from services.gateway import LLMGateway
 from services.intent_detector import detect_intent, get_canned_response
 from core.config import get_settings
 
+logger = logging.getLogger("ChatService")
 settings = get_settings()
 
 # Initialize the LLM Gateway instance
@@ -58,10 +60,16 @@ class ChatService:
             request.messages[-1].content,
         )
 
+        logger.info(f"📨 Incoming Query: \"{latest_user_content}\"")
+
         # 1. Intent Detection (Zero LLM, Zero Cost)
         intent_result = detect_intent(latest_user_content)
 
         if not intent_result.should_use_llm:
+            logger.info(
+                f"⚡ [INTENT DETECTED: '{intent_result.intent}'] (Confidence: {intent_result.confidence:.2f}) "
+                f"-> Used: [LOCAL CANNED TEXT] | Cloud Model: NONE (0 Tokens consumed)"
+            )
             canned_reply = get_canned_response(intent_result.intent)
             return ChatResponse(
                 reply=canned_reply,
@@ -73,12 +81,22 @@ class ChatService:
             )
 
         # 2. Substantive MumtaAI Query -> LLM Gateway
+        logger.info(
+            f"☁️ [INTENT DETECTED: '{intent_result.intent}'] (Confidence: {intent_result.confidence:.2f}) "
+            f"-> Used: [CLOUD MODEL] | Routing to LLM Gateway across configured providers..."
+        )
+
         langchain_messages = [to_langchain_message(m) for m in request.messages]
 
         reply, provider_name, model_name, usage, status_events = await self.gateway.generate(
             messages=langchain_messages,
             temperature=request.temperature,
             max_tokens=request.max_tokens,
+        )
+
+        logger.info(
+            f"✅ [CLOUD MODEL COMPLETED] Provider: {provider_name} | Model: {model_name} "
+            f"| Total Tokens: {usage.get('total_tokens', 0)} (Prompt: {usage.get('prompt_tokens', 0)}, Completion: {usage.get('completion_tokens', 0)})"
         )
 
         return ChatResponse(
@@ -101,3 +119,4 @@ class ChatService:
 
 # Singleton service instance
 chat_service = ChatService()
+

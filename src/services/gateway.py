@@ -278,6 +278,10 @@ class LLMGateway:
 
             try:
                 # Initialize LangChain ChatOpenAI for this deployment
+                logger.info(
+                    f"🌐 Connecting to Cloud LLM Provider: {deployment.name} ({deployment.default_model}) "
+                    f"[Attempt {attempts}/{self.max_attempts}]..."
+                )
                 llm = ChatOpenAI(
                     api_key=deployment.api_key,
                     base_url=deployment.base_url,
