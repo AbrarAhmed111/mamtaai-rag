@@ -80,6 +80,26 @@ async def test_chat_validation_error():
 
 
 @pytest.mark.asyncio
+async def test_chat_handles_empty_placeholder_messages():
+    """Test that empty placeholder messages from frontend UI (e.g. content: '') do not crash with 422."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        payload = {
+            "messages": [
+                {"role": "user", "content": "Hello!"},
+                {"role": "assistant", "content": "Hi there!"},
+                {"role": "user", "content": "Thanks"},
+                {"role": "assistant", "content": ""},  # Frontend placeholder bubble
+            ]
+        }
+        response = await client.post("/api/chat", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] == "canned_response"
+        assert data["intent"] == "thanks"
+
+
+
+@pytest.mark.asyncio
 async def test_chat_intent_detection_bypasses_gateway():
     """
     When user sends a simple greeting ('Hello!'), the Intent Detector intercepts it:

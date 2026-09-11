@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class ChatMessage(BaseModel):
     """Represents a single message in conversation history."""
     role: str = Field(default="user", description="Sender role: user, assistant, or system")
-    content: str = Field(..., min_length=1, description="Message text content")
+    content: str = Field(default="", description="Message text content")
 
 
 class ChatRequest(BaseModel):

@@ -11,6 +11,12 @@ from .types import (
     IntentResult,
     # Conversational (should_use_llm = False)
     INTENT_GREETING,
+    INTENT_WELLBEING,
+    INTENT_BOT_IDENTITY,
+    INTENT_COMPLIMENT,
+    INTENT_PLEASANTRY,
+    INTENT_APOLOGY,
+    INTENT_PING,
     INTENT_THANKS,
     INTENT_GOODBYE,
     INTENT_ACKNOWLEDGEMENT,
@@ -82,8 +88,8 @@ MUMTAAI_DOMAIN_RULES: List[Tuple[str, List[str], str]] = [
     (
         INTENT_CRY_ANALYSIS,
         [
-            r"\bcry\s+(analysis|detection|model|classifier|feature|pattern)\b",
-            r"\bcrying\s+(analysis|translation|patterns)\b",
+            r"\bcry\s+(analysis|detection|model|classifier|feature|pattern(s)?)\b",
+            r"\bcrying\s+(analysis|translation|pattern(s)?)\b",
             r"\bwhat\s+does\s+cry\s+analysis\b",
             r"\bhow\s+does\s+cry\s+analysis\b",
             r"\bbaby('s)?\s+cry\b",
@@ -253,56 +259,170 @@ MUMTAAI_DOMAIN_RULES: List[Tuple[str, List[str], str]] = [
 EXACT_CONVERSATIONAL_RULES = {
     # 1. Greetings
     INTENT_GREETING: [
-        "hi", "hello", "hey", "hey there", "hello there", "heya",
-        "good morning", "good afternoon", "good evening", "greetings", "howdy",
+        "hi", "hello", "hey", "hey there", "hello there", "heya", "hi there",
+        "hiya", "yo", "good morning", "good afternoon", "good evening",
+        "greetings", "howdy", "salam", "assalam o alaikum", "namaste",
     ],
-    # 2. Thanks
+    # 2. Wellbeing & Small Talk
+    INTENT_WELLBEING: [
+        "how are you", "how are you doing", "how are you today", "how are things",
+        "how is it going", "hows it going", "how's it going", "hows everything",
+        "how is everything", "how do you do", "whats up", "what's up", "what is up",
+        "sup", "how have you been", "hows life", "how is life", "how is your day",
+        "how was your day", "hows your day", "are you doing ok", "are you doing okay",
+        "how r u", "how are u", "how you doing",
+    ],
+    # 3. Bot Persona / Identity
+    INTENT_BOT_IDENTITY: [
+        "who are you", "who are u", "what are you", "what are u", "what is your name",
+        "whats your name", "what's your name", "who made you", "who created you",
+        "are you a bot", "are you a robot", "are you an ai", "are you ai",
+        "are you real", "are you human", "introduce yourself", "tell me about yourself",
+    ],
+    # 4. Compliments
+    INTENT_COMPLIMENT: [
+        "you are awesome", "you're awesome", "you are great", "you're great",
+        "you are amazing", "you're amazing", "good bot", "good job", "nice work",
+        "well done", "love you", "you are helpful", "you're so helpful",
+        "you are the best", "you're the best", "i like you", "smart bot",
+    ],
+    # 5. Pleasantries
+    INTENT_PLEASANTRY: [
+        "nice to meet you", "pleased to meet you", "glad to meet you",
+        "great to meet you", "good to see you",
+    ],
+    # 6. Apologies
+    INTENT_APOLOGY: [
+        "sorry", "i am sorry", "im sorry", "i'm sorry", "my bad",
+        "excuse me", "pardon me", "apologies",
+    ],
+    # 7. Ping / Availability
+    INTENT_PING: [
+        "test", "testing", "ping", "check", "hello world", "are you there",
+        "are you online", "can you hear me", "anyone there",
+    ],
+    # 8. Thanks
     INTENT_THANKS: [
         "thanks", "thank you", "thanks a lot", "thank you so much",
-        "appreciate it", "much appreciated", "thx", "ty", "many thanks",
+        "thanks so much", "appreciate it", "much appreciated", "thx", "ty",
+        "many thanks", "thanks a ton", "thank u",
     ],
-    # 3. Goodbye
+    # 9. Goodbye
     INTENT_GOODBYE: [
-        "bye", "goodbye", "see you", "see you later", "talk to you later",
-        "good night", "cya", "bye bye", "have a good day",
+        "bye", "goodbye", "see you", "see you later", "see ya", "talk to you later",
+        "talk soon", "good night", "cya", "bye bye", "have a good day",
+        "have a great day", "have a good one", "take care",
     ],
-    # 4. Acknowledgement
+    # 10. Acknowledgement
     INTENT_ACKNOWLEDGEMENT: [
-        "okay", "ok", "alright", "got it", "understood", "makes sense",
-        "sure", "k", "cool", "fine",
+        "okay", "ok", "alright", "all right", "got it", "understood", "makes sense",
+        "sure", "k", "cool", "fine", "noted", "gotcha", "will do", "roger that", "sounds good",
     ],
-    # 5. Confirmation
+    # 11. Confirmation
     INTENT_CONFIRMATION: [
-        "yes", "yeah", "yep", "correct", "exactly", "that's right",
-        "right", "definitely", "absolutely",
+        "yes", "yeah", "yep", "yup", "correct", "exactly", "that's right",
+        "thats right", "right", "definitely", "absolutely",
     ],
-    # 6. Simple Negative
+    # 12. Simple Negative
     INTENT_SIMPLE_NEGATIVE: [
-        "no", "nope", "not really", "nah", "negative",
+        "no", "nope", "not really", "nah", "negative", "no thanks", "no thank you",
     ],
-    # 7. Positive Reaction
+    # 13. Positive Reaction
     INTENT_SIMPLE_POSITIVE: [
         "great", "awesome", "perfect", "nice", "excellent", "that's great",
-        "wonderful", "fantastic", "amazing",
+        "thats great", "wonderful", "fantastic", "amazing",
     ],
-    # 8. Cancellation
+    # 14. Cancellation
     INTENT_CANCELLATION: [
         "cancel", "never mind", "nevermind", "forget it", "stop",
-        "don't worry about it", "dont worry", "leave it",
+        "don't worry about it", "dont worry", "leave it", "abort",
     ],
-    # 9. Simple Clarification
+    # 15. Simple Clarification
     INTENT_SIMPLE_CLARIFICATION: [
         "what?", "what", "huh?", "huh", "i don't understand", "dont understand",
         "can you repeat that?", "can you repeat that", "say that again",
-        "pardon?", "pardon",
+        "pardon?", "pardon", "come again",
     ],
-    # 10. Capability / Generic Help
+    # 16. Capability / Generic Help
     INTENT_CAPABILITY_HELP: [
-        "what can you do?", "what can you do", "how can you help?", "how can you help",
-        "i need help", "help", "help me", "can you help me?", "can you help me",
-        "what are your capabilities", "what do you do?", "what do you do",
+        "what can you do?", "what can you do", "what can u do", "what do you do?",
+        "what do you do", "how can you help?", "how can you help", "how can you help me?",
+        "how can you help me", "i need help", "help", "help me", "can you help me?",
+        "can you help me", "what are your capabilities", "what are your features",
+        "show me features", "guide me", "menu", "commands",
     ],
 }
+
+# Regex patterns for conversational intents when phrasing varies slightly
+CONVERSATIONAL_REGEX_PATTERNS: List[Tuple[str, List[str]]] = [
+    (
+        INTENT_WELLBEING,
+        [
+            r"^(how|how's|hows)\s+(are\s+(you|u)|is\s+it\s+going|are\s+things|everything|have\s+you\s+been|r\s+u|do\s+you\s+do|your\s+day)(\s+.*)?\??$",
+            r"^(what's\s+up|whats\s+up|what\s+is\s+up|sup)(\s+.*)?\??$",
+            r"^are\s+you\s+doing\s+(ok|okay|well|fine|good)(\s+.*)?\??$",
+        ],
+    ),
+    (
+        INTENT_BOT_IDENTITY,
+        [
+            r"^(who|what)\s+(are\s+(you|u)|is\s+your\s+name|made\s+(you|u)|created\s+(you|u))(\s+.*)?\??$",
+            r"^are\s+you\s+(a\s+bot|a\s+robot|an\s+ai|ai|human|real)(\s+.*)?\??$",
+            r"^(introduce\s+yourself|tell\s+me\s+about\s+yourself)(\s+.*)?\??$",
+        ],
+    ),
+    (
+        INTENT_COMPLIMENT,
+        [
+            r"^(you're|you\s+are)\s+(so\s+|really\s+|very\s+)?(awesome|great|amazing|the\s+best|cool|smart|helpful|wonderful)(\s+.*)?!?\.?$",
+            r"^(good\s+job|nice\s+work|well\s+done)(\s+.*)?!?\.?$",
+        ],
+    ),
+    (
+        INTENT_PLEASANTRY,
+        [
+            r"^(nice|pleased|glad|great|good)\s+to\s+(meet|see)\s+you(\s+.*)?!?\.?$",
+        ],
+    ),
+    (
+        INTENT_APOLOGY,
+        [
+            r"^(i'm\s+sorry|im\s+sorry|i\s+am\s+sorry|my\s+bad|sorry|apologies)(\s+.*)?!?\.?$",
+        ],
+    ),
+    (
+        INTENT_PING,
+        [
+            r"^(are\s+you\s+(there|online)|can\s+you\s+hear\s+me|anyone\s+there)(\s+.*)?\??$",
+            r"^(test|testing|ping)$",
+        ],
+    ),
+    (
+        INTENT_CAPABILITY_HELP,
+        [
+            r"^(what\s+can\s+(you|u)\s+do|how\s+can\s+(you|u)\s+help|what\s+do\s+you\s+do)(\s+.*)?\??$",
+            r"^(can\s+you\s+help\s+me|help\s+me\s+please|what\s+are\s+your\s+(features|capabilities))(\s+.*)?\??$",
+        ],
+    ),
+    (
+        INTENT_GREETING,
+        [
+            r"^(hi|hello|hey|heya|hiya|howdy|yo|greetings)(\s+(there|friend|bot|assistant|mumtaai|mumta))?!?\.?\??$",
+        ],
+    ),
+    (
+        INTENT_THANKS,
+        [
+            r"^(thank\s+(you|u)|thanks|thx|ty)(\s+.*)?!?\.?$",
+        ],
+    ),
+    (
+        INTENT_GOODBYE,
+        [
+            r"^(bye|goodbye|bye\s+bye|see\s+ya|see\s+you|good\s+night|take\s+care|cya)(\s+.*)?!?\.?$",
+        ],
+    ),
+]
 
 
 # =============================================================================
@@ -316,8 +436,8 @@ def detect_intent(text: str) -> IntentResult:
     Priority Algorithm:
     1. Check for MumtaAI product & support features (oximeter, cry analysis, baby profile, billing, etc.).
        -> If found: MUST return that domain intent with should_use_llm = True.
-    2. Check for standalone conversational intents (greeting, thanks, goodbye, ok, etc.).
-       -> Only triggered if NO domain keywords exist and message is a simple conversational phrase.
+    2. Check for conversational intents (wellbeing, greetings, bot identity, thanks, goodbye, ok, etc.).
+       -> Only triggered if NO domain keywords exist.
        -> Returns conversational intent with should_use_llm = False.
     3. Fallback:
        -> Ambiguous, compound, or unclassified queries default to 'unknown' with should_use_llm = True.
@@ -353,15 +473,8 @@ def detect_intent(text: str) -> IntentResult:
     # -------------------------------------------------------------------------
     # STEP 2: Check Standalone Conversational Intents (Zero-LLM)
     # -------------------------------------------------------------------------
-    # Conversational shortcuts are only safe for concise standalone messages
-    # (typically <= 6 words). Long messages with question words should not be
-    # swallowed by conversational rules.
-    has_question_indicators = bool(
-        re.search(r"\b(how|what|where|when|why|who|can\s+i|is\s+there|could\s+you)\b", norm_text)
-    )
-
+    # A. Exact match against stripped text (e.g. "how are you", "thanks", "who are you")
     for intent, phrases in EXACT_CONVERSATIONAL_RULES.items():
-        # A. Exact match against stripped text (e.g., "thanks", "hello", "what can you do")
         if stripped in phrases:
             return IntentResult(
                 intent=intent,
@@ -371,11 +484,22 @@ def detect_intent(text: str) -> IntentResult:
                 reason=f"Matched standalone conversational phrase for '{intent}'",
             )
 
-        # B. For short messages (<= 4 words) without substantive question indicators,
-        # check if it's a simple greeting or farewell
-        if word_count <= 4 and not has_question_indicators:
+    # B. Regex patterns for flexible conversational phrasing (e.g. "how are you doing today?")
+    for intent, patterns in CONVERSATIONAL_REGEX_PATTERNS:
+        for pattern in patterns:
+            if re.search(pattern, norm_text, re.IGNORECASE) or re.search(pattern, stripped, re.IGNORECASE):
+                return IntentResult(
+                    intent=intent,
+                    should_use_llm=False,
+                    confidence=0.95,
+                    matched_rule=f"regex_{intent}",
+                    reason=f"Matched conversational pattern for '{intent}'",
+                )
+
+    # C. For very short messages (<= 4 words), check fullmatch against phrase dictionary
+    if word_count <= 4:
+        for intent, phrases in EXACT_CONVERSATIONAL_RULES.items():
             for phrase in phrases:
-                # Word-boundary match for the phrase alone
                 if re.fullmatch(re.escape(phrase), stripped):
                     return IntentResult(
                         intent=intent,
@@ -395,3 +519,4 @@ def detect_intent(text: str) -> IntentResult:
         matched_rule="fallback_unknown",
         reason="No deterministic conversational shortcut or product rule matched. Routing to LLM/RAG.",
     )
+

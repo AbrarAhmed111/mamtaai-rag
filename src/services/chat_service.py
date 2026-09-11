@@ -50,14 +50,20 @@ class ChatService:
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
         """
         Process incoming chat messages:
+        - Filters out empty messages (e.g. frontend typing indicator placeholders).
         - Extracts latest user message.
         - Evaluates intent.
         - Returns canned answer if conversational.
         - Otherwise routes through the multi-provider LLM gateway.
         """
+        # Filter out empty placeholder messages from frontend UI state
+        clean_messages = [m for m in request.messages if m.content and m.content.strip()]
+        if not clean_messages:
+            clean_messages = [ChatMessage(role="user", content="Hello")]
+
         latest_user_content = next(
-            (m.content for m in reversed(request.messages) if m.role == "user"),
-            request.messages[-1].content,
+            (m.content for m in reversed(clean_messages) if m.role == "user"),
+            clean_messages[-1].content,
         )
 
         logger.info(f"📨 Incoming Query: \"{latest_user_content}\"")
@@ -86,7 +92,7 @@ class ChatService:
             f"-> Used: [CLOUD MODEL] | Routing to LLM Gateway across configured providers..."
         )
 
-        langchain_messages = [to_langchain_message(m) for m in request.messages]
+        langchain_messages = [to_langchain_message(m) for m in clean_messages]
 
         reply, provider_name, model_name, usage, status_events = await self.gateway.generate(
             messages=langchain_messages,

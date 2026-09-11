@@ -6,6 +6,12 @@ Kept strictly separate from detection logic.
 from typing import Dict
 from .types import (
     INTENT_GREETING,
+    INTENT_WELLBEING,
+    INTENT_BOT_IDENTITY,
+    INTENT_COMPLIMENT,
+    INTENT_PLEASANTRY,
+    INTENT_APOLOGY,
+    INTENT_PING,
     INTENT_THANKS,
     INTENT_GOODBYE,
     INTENT_ACKNOWLEDGEMENT,
@@ -21,6 +27,26 @@ CANNED_RESPONSES: Dict[str, str] = {
     INTENT_GREETING: (
         "Hello! I am your MumtaAI Product Guide & Support Assistant. "
         "How can I help you with your account, baby profiles, cry analysis, or oximeter today?"
+    ),
+    INTENT_WELLBEING: (
+        "I'm doing great, thank you for asking! I'm here and ready to help you with MumtaAI - "
+        "such as setting up baby profiles, pairing your smart oximeter, or understanding cry analysis. How can I assist you today?"
+    ),
+    INTENT_BOT_IDENTITY: (
+        "I am the MumtaAI Product Guide & Support Assistant! I'm an intelligent assistant built to help parents "
+        "and caregivers navigate MumtaAI's smart monitoring tools, cry insights, baby profiles, and account settings."
+    ),
+    INTENT_COMPLIMENT: (
+        "Thank you so much! I'm delighted to assist. Let me know if you have any questions about your baby's data or MumtaAI features."
+    ),
+    INTENT_PLEASANTRY: (
+        "Nice to connect with you! I'm ready to guide you through any MumtaAI features whenever you need."
+    ),
+    INTENT_APOLOGY: (
+        "No worries at all! How can I assist you with MumtaAI today?"
+    ),
+    INTENT_PING: (
+        "I'm online and ready! What would you like help with in MumtaAI?"
     ),
     INTENT_THANKS: (
         "You're very welcome! I'm always here if you have any more questions about MumtaAI."

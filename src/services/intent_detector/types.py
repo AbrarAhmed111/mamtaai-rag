@@ -12,6 +12,12 @@ from pydantic import BaseModel, Field
 
 # Non-LLM Intents (should_use_llm = False)
 INTENT_GREETING = "greeting"
+INTENT_WELLBEING = "wellbeing"
+INTENT_BOT_IDENTITY = "bot_identity"
+INTENT_COMPLIMENT = "compliment"
+INTENT_PLEASANTRY = "pleasantry"
+INTENT_APOLOGY = "apology"
+INTENT_PING = "ping"
 INTENT_THANKS = "thanks"
 INTENT_GOODBYE = "goodbye"
 INTENT_ACKNOWLEDGEMENT = "acknowledgement"
