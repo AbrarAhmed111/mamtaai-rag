@@ -6,9 +6,15 @@ Verifies /health and /chat endpoints using mocks.
 import pytest
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import patch, AsyncMock
-from gateway import ProviderStatusEvent
 
-from main import app
+try:
+    from src.gateway import ProviderStatusEvent
+    from src.main import app
+    PATCH_TARGET = "src.main.gateway.generate"
+except ImportError:
+    from gateway import ProviderStatusEvent
+    from main import app
+    PATCH_TARGET = "main.gateway.generate"
 
 
 @pytest.fixture
@@ -61,7 +67,7 @@ async def test_chat_success_mocked():
         mock_events,
     )
 
-    with patch("main.gateway.generate", new_callable=AsyncMock) as mock_gen:
+    with patch(PATCH_TARGET, new_callable=AsyncMock) as mock_gen:
         mock_gen.return_value = mock_return
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

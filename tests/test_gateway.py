@@ -8,7 +8,12 @@ import time
 from unittest.mock import patch, AsyncMock
 from langchain_core.messages import HumanMessage, AIMessage
 
-from gateway import LLMGateway, ProviderDeployment, ErrorClassifier, ProviderStatusEvent
+try:
+    from src.gateway import LLMGateway, ProviderDeployment, ErrorClassifier, ProviderStatusEvent
+    PATCH_AINVOKE = "src.gateway.ChatOpenAI.ainvoke"
+except ImportError:
+    from gateway import LLMGateway, ProviderDeployment, ErrorClassifier, ProviderStatusEvent
+    PATCH_AINVOKE = "gateway.ChatOpenAI.ainvoke"
 
 
 @pytest.fixture
@@ -53,7 +58,7 @@ async def test_gateway_first_provider_success(mock_gateway):
         usage_metadata={"input_tokens": 10, "output_tokens": 5, "total_tokens": 15},
     )
 
-    with patch("gateway.ChatOpenAI.ainvoke", new_callable=AsyncMock) as mock_invoke:
+    with patch(PATCH_AINVOKE, new_callable=AsyncMock) as mock_invoke:
         mock_invoke.return_value = mock_ai_resp
 
         messages = [HumanMessage(content="Hello!")]
@@ -86,7 +91,7 @@ async def test_gateway_fallback_on_429(mock_gateway):
             raise Exception("HTTP 429 Too Many Requests: Resource has been exhausted (quota exceeded)")
         return mock_ai_resp
 
-    with patch("gateway.ChatOpenAI.ainvoke", side_effect=side_effect):
+    with patch(PATCH_AINVOKE, side_effect=side_effect):
         messages = [HumanMessage(content="Hello!")]
         reply, provider, model, usage, events = await mock_gateway.generate(messages)
 
@@ -125,7 +130,7 @@ async def test_gateway_non_retryable_error(mock_gateway):
     """
     A 400 Bad Request error should NOT trigger fallback; it must raise immediately.
     """
-    with patch("gateway.ChatOpenAI.ainvoke", side_effect=Exception("400 Bad Request: Invalid prompt format")):
+    with patch(PATCH_AINVOKE, side_effect=Exception("400 Bad Request: Invalid prompt format")):
         messages = [HumanMessage(content="Bad input")]
         with pytest.raises(Exception) as exc_info:
             await mock_gateway.generate(messages)

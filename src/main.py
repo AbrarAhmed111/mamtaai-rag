@@ -16,7 +16,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from gateway import LLMGateway, ProviderStatusEvent
+
+try:
+    from src.gateway import LLMGateway, ProviderStatusEvent
+except ImportError:
+    from gateway import LLMGateway, ProviderStatusEvent
 
 # -----------------------------------------------------------------------------
 # 1. Environment & Gateway Setup
@@ -148,4 +152,4 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     print(f"\n🚀 MumtaAI LLM Gateway running at http://localhost:{port}")
     print(f"📖 Interactive API Docs available at http://localhost:{port}/docs\n")
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("src.main:app", host="0.0.0.0", port=port, reload=True)
