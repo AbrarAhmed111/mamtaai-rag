@@ -17,7 +17,6 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
     datefmt="%H:%M:%S",
 )
-logger = logging.getLogger("App")
 settings = get_settings()
 
 app = FastAPI(

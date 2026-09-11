@@ -24,7 +24,7 @@ def mock_gateway():
             provider="gemini",
             api_key="mock-key-1",
             base_url="https://mock.gemini.api/v1",
-            default_model="gemini-1.5-flash",
+            default_model="gemini-2.5-flash-lite",
             cooldown_seconds=5,
         ),
         ProviderDeployment(
@@ -32,7 +32,7 @@ def mock_gateway():
             provider="gemini",
             api_key="mock-key-2",
             base_url="https://mock.gemini.api/v1",
-            default_model="gemini-1.5-flash",
+            default_model="gemini-2.5-flash-lite",
             cooldown_seconds=5,
         ),
         ProviderDeployment(
@@ -40,7 +40,7 @@ def mock_gateway():
             provider="groq",
             api_key="mock-groq-key",
             base_url="https://mock.groq.api/v1",
-            default_model="llama-3.3-70b-versatile",
+            default_model="openai/gpt-oss-20b",
             cooldown_seconds=5,
         ),
     ]
@@ -63,7 +63,7 @@ async def test_gateway_first_provider_success(mock_gateway):
 
         assert reply == "Success from Gemini 1"
         assert provider == "Gemini #1"
-        assert model == "gemini-1.5-flash"
+        assert model == "gemini-2.5-flash-lite"
         assert usage["total_tokens"] == 15
         assert len(events) == 0  # No fallback occurred
 
@@ -105,6 +105,38 @@ async def test_gateway_fallback_on_429(mock_gateway):
         assert events[1].status == "switched"
         assert "Switched to Gemini #2 successfully." in events[1].message
         assert events[1].provider == "Gemini #2"
+
+
+@pytest.mark.asyncio
+async def test_gateway_fallback_on_404_model_not_found(mock_gateway):
+    """
+    When Gemini #1 throws 404 model not found, gateway must disable Gemini #1
+    and seamlessly fall back to Gemini #2.
+    """
+    mock_ai_resp = AIMessage(
+        content="Success from Gemini 2",
+        usage_metadata={"input_tokens": 10, "output_tokens": 8, "total_tokens": 18},
+    )
+
+    call_count = 0
+
+    async def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise Exception("404 Not Found: model 'gemini-1.5-flash' not found")
+        return mock_ai_resp
+
+    with patch(PATCH_AINVOKE, side_effect=side_effect):
+        messages = [HumanMessage(content="Hello!")]
+        reply, provider, model, usage, events = await mock_gateway.generate(messages)
+
+        assert reply == "Success from Gemini 2"
+        assert provider == "Gemini #2"
+        assert len(events) == 2
+        assert events[0].status == "fallback"
+        assert "Gemini #1 model 'gemini-2.5-flash-lite' is unavailable" in events[0].message
+        assert mock_gateway.deployments[0].is_permanently_disabled is True
 
 
 @pytest.mark.asyncio

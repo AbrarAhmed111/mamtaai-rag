@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,https://mamtaai.vercel.app"
 
     # Gateway Default Settings
-    GATEWAY_MAX_ATTEMPTS: int = 5
+    GATEWAY_MAX_ATTEMPTS: int = 10
     GATEWAY_COOLDOWN_SECONDS: int = 60
 
     model_config = SettingsConfigDict(

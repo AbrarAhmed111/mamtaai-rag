@@ -11,12 +11,12 @@ Handles:
 import os
 import time
 import logging
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Dict, Any
+from dataclasses import dataclass
+from typing import List, Optional, Tuple, Dict
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import BaseMessage
 
 load_dotenv()
 logger = logging.getLogger("LLMGateway")
@@ -112,6 +112,10 @@ class ErrorClassifier:
                 return False, "invalid_api_key"
             return False, "client_or_auth_error"
 
+        # Model not found or deprecated endpoint on a specific provider (404)
+        if "404" in err_msg or "not_found" in err_msg or "not found" in err_msg or "NotFoundError" in err_type:
+            return True, "model_or_endpoint_not_found"
+
         # Check for retryable rate-limits and quotas
         if "429" in err_msg or "rate limit" in err_msg or "quota" in err_msg or "resource exhausted" in err_msg:
             return True, "rate_limit_or_quota"
@@ -152,7 +156,7 @@ class LLMGateway:
     Manages provider deployments, ordered fallback, and status events.
     """
 
-    def __init__(self, max_attempts: int = 5, cooldown_seconds: int = 60):
+    def __init__(self, max_attempts: int = 10, cooldown_seconds: int = 60):
         self.max_attempts = max_attempts
         self.cooldown_seconds = cooldown_seconds
         self.deployments: List[ProviderDeployment] = []
@@ -168,9 +172,10 @@ class LLMGateway:
         - Cerebras: CEREBRAS_API_KEY
         """
         gemini_base = "https://generativelanguage.googleapis.com/v1beta/openai/"
-        gemini_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        gemini_fallback = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
 
-        # 1. Gemini Deployments (4 Keys)
+        # 1. Gemini Deployments (4 Keys with Primary Lightweight Model)
         for i in range(1, 5):
             key = os.getenv(f"GOOGLE_API_KEY{i}")
             if key and key.strip():
@@ -185,19 +190,47 @@ class LLMGateway:
                     )
                 )
 
-        # 2. Groq Deployment
+        # Gemini Higher-Quality Fallback (uses Primary Key if available)
+        primary_google_key = os.getenv("GOOGLE_API_KEY1")
+        if primary_google_key and primary_google_key.strip() and gemini_fallback:
+            self.deployments.append(
+                ProviderDeployment(
+                    name="Gemini (Quality Fallback)",
+                    provider="gemini",
+                    api_key=primary_google_key.strip(),
+                    base_url=gemini_base,
+                    default_model=gemini_fallback,
+                    cooldown_seconds=self.cooldown_seconds,
+                )
+            )
+
+        # 2. Groq Deployments (Lightweight gpt-oss-20b + Quality Fallback gpt-oss-120b)
         groq_key = os.getenv("GROQ_API_KEY")
         if groq_key and groq_key.strip():
+            groq_primary = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+            groq_fallback = os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b")
+
             self.deployments.append(
                 ProviderDeployment(
                     name="Groq",
                     provider="groq",
                     api_key=groq_key.strip(),
                     base_url="https://api.groq.com/openai/v1",
-                    default_model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                    default_model=groq_primary,
                     cooldown_seconds=self.cooldown_seconds,
                 )
             )
+            if groq_fallback:
+                self.deployments.append(
+                    ProviderDeployment(
+                        name="Groq (Quality Fallback)",
+                        provider="groq",
+                        api_key=groq_key.strip(),
+                        base_url="https://api.groq.com/openai/v1",
+                        default_model=groq_fallback,
+                        cooldown_seconds=self.cooldown_seconds,
+                    )
+                )
 
         # 3. OpenAI Deployment
         openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY")
@@ -236,7 +269,7 @@ class LLMGateway:
                     provider="cerebras",
                     api_key=cerebras_key.strip(),
                     base_url="https://api.cerebras.ai/v1",
-                    default_model=os.getenv("CEREBRAS_MODEL", "llama3.1-8b"),
+                    default_model=os.getenv("CEREBRAS_MODEL", "qwen-3.8-27b"),
                     cooldown_seconds=self.cooldown_seconds,
                 )
             )
@@ -331,24 +364,50 @@ class LLMGateway:
                 is_retryable, reason = ErrorClassifier.is_retryable(e)
 
                 if is_retryable:
-                    # Put failed deployment on cooldown
-                    deployment.mark_cooldown(self.cooldown_seconds)
-                    msg = f"{deployment.name} has reached its current API limit or is unavailable. Switching to another provider..."
-                    status_events.append(
-                        ProviderStatusEvent(
-                            type="provider_status",
-                            status="fallback",
-                            message=msg,
-                            provider=deployment.name,
+                    if reason == "model_or_endpoint_not_found":
+                        deployment.mark_disabled()
+                        msg = f"{deployment.name} model '{deployment.default_model}' is unavailable. Switching to another provider..."
+                        status_events.append(
+                            ProviderStatusEvent(
+                                type="provider_status",
+                                status="fallback",
+                                message=msg,
+                                provider=deployment.name,
+                            )
                         )
-                    )
-                    logger.warning(f"Fallback triggered for {deployment.name}: {reason} ({str(e)})")
-                    continue
+                        logger.warning(
+                            f"⚠️ Fallback triggered for {deployment.name}: model '{deployment.default_model}' not found (404). "
+                            f"Disabling and switching to next provider..."
+                        )
+                        continue
+                    else:
+                        # Put failed deployment on cooldown
+                        deployment.mark_cooldown(self.cooldown_seconds)
+                        msg = f"{deployment.name} has reached its current API limit or is unavailable. Switching to another provider..."
+                        status_events.append(
+                            ProviderStatusEvent(
+                                type="provider_status",
+                                status="fallback",
+                                message=msg,
+                                provider=deployment.name,
+                            )
+                        )
+                        logger.warning(f"⚠️ Fallback triggered for {deployment.name}: {reason} ({str(e)})")
+                        continue
                 else:
-                    # Non-retryable error (e.g. invalid key or bad request)
+                    # Non-retryable error on this specific provider (e.g. invalid key)
                     if reason == "invalid_api_key":
                         deployment.mark_disabled()
-                        logger.error(f"Permanently disabling {deployment.name} due to invalid API key.")
+                        logger.error(f"⚠️ Permanently disabling {deployment.name} due to invalid API key. Falling back to next provider...")
+                        status_events.append(
+                            ProviderStatusEvent(
+                                type="provider_status",
+                                status="fallback",
+                                message=f"{deployment.name} authentication failed. Switching to another provider...",
+                                provider=deployment.name,
+                            )
+                        )
+                        continue
                     raise e
 
         # If all attempts exhausted

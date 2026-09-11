@@ -7,7 +7,6 @@ Encapsulates chatbot business logic:
 """
 
 import logging
-from typing import List
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 
 from schemas.chat import (

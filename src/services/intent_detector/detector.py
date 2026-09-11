@@ -4,7 +4,7 @@ Operates completely offline without LLMs or cloud APIs.
 """
 
 import re
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from .normalizer import normalize_text, strip_punctuation
 from .types import (
