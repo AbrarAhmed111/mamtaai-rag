@@ -5,7 +5,7 @@ normalization, and canned responses completely offline.
 """
 
 import pytest
-from intent_detector import (
+from services.intent_detector import (
     detect_intent,
     get_canned_response,
     INTENT_GREETING,

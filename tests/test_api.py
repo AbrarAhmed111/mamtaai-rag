@@ -7,14 +7,28 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import patch, AsyncMock
 
-from gateway import ProviderStatusEvent
 from main import app
-PATCH_TARGET = "main.gateway.generate"
+from schemas.chat import ChatResponse, UsageInfo, ProviderStatusEventSchema
+from services.gateway import ProviderStatusEvent
+
+PATCH_CHAT_SERVICE = "services.chat_service.chat_service.process_chat"
+PATCH_GATEWAY_GENERATE = "services.gateway.LLMGateway.generate"
 
 
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+
+@pytest.mark.asyncio
+async def test_root():
+    """Test root endpoint returns service info."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "service" in data
+        assert "endpoints" in data
 
 
 @pytest.mark.asyncio
@@ -44,7 +58,7 @@ async def test_chat_intent_detection_bypasses_gateway():
     - 0 tokens used
     - Gateway.generate is NOT called
     """
-    with patch(PATCH_TARGET, new_callable=AsyncMock) as mock_gen:
+    with patch(PATCH_GATEWAY_GENERATE, new_callable=AsyncMock) as mock_gen:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {
                 "messages": [
@@ -59,7 +73,6 @@ async def test_chat_intent_detection_bypasses_gateway():
             assert data["intent"] == "greeting"
             assert data["usage"]["total_tokens"] == 0
             assert "MumtaAI" in data["reply"]
-            # Gateway must not have been called!
             mock_gen.assert_not_called()
 
 
@@ -87,7 +100,7 @@ async def test_chat_domain_query_reaches_gateway():
         mock_events,
     )
 
-    with patch(PATCH_TARGET, new_callable=AsyncMock) as mock_gen:
+    with patch(PATCH_GATEWAY_GENERATE, new_callable=AsyncMock) as mock_gen:
         mock_gen.return_value = mock_return
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -103,5 +116,4 @@ async def test_chat_domain_query_reaches_gateway():
             assert data["intent"] == "oximeter"
             assert data["usage"]["total_tokens"] == 33
             assert len(data["status_events"]) == 1
-            # Gateway must have been called
             mock_gen.assert_called_once()

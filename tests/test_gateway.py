@@ -8,8 +8,9 @@ import time
 from unittest.mock import patch, AsyncMock
 from langchain_core.messages import HumanMessage, AIMessage
 
-from gateway import LLMGateway, ProviderDeployment, ErrorClassifier, ProviderStatusEvent
-PATCH_AINVOKE = "gateway.ChatOpenAI.ainvoke"
+from services.gateway import LLMGateway, ProviderDeployment, ErrorClassifier, ProviderStatusEvent
+
+PATCH_AINVOKE = "services.gateway.ChatOpenAI.ainvoke"
 
 
 @pytest.fixture
