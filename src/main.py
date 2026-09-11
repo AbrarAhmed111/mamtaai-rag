@@ -1,12 +1,15 @@
 """
-Phase 1: LLM Chat API with LLM Gateway Layer
+Phase 1: LLM Chat API with Intent Detector & LLM Gateway Layer
 
-Features:
-- Multi-provider support (Gemini x4, Groq, OpenAI, Mistral, Cerebras)
-- Automatic fallback on rate limits (429), quota exhaustion, or temporary outages
-- Cooldown tracking to prevent repeatedly hitting rate-limited providers
-- User-facing provider status events ("fallback", "switched")
-- Zero API key leakage
+Architecture:
+User message
+    │
+    ▼
+Intent Detector (Zero-LLM, Rule-Based)
+    │
+    ├── should_use_llm == False ──► Canned Response (Zero tokens, 0ms external latency)
+    │
+    └── should_use_llm == True  ──► LLM Gateway (Multi-provider fallback across Gemini x4, Groq, OpenAI, Mistral, Cerebras)
 """
 
 import os
@@ -17,10 +20,8 @@ from pydantic import BaseModel, Field
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 
-try:
-    from src.gateway import LLMGateway, ProviderStatusEvent
-except ImportError:
-    from gateway import LLMGateway, ProviderStatusEvent
+from gateway import LLMGateway, ProviderStatusEvent
+from intent_detector import detect_intent, get_canned_response
 
 # -----------------------------------------------------------------------------
 # 1. Environment & Gateway Setup
@@ -63,11 +64,12 @@ class UsageInfo(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Chat completion response including provider info and fallback events."""
+    """Chat completion response including provider info, intent, and fallback events."""
     reply: str
     provider: str
     model: str
     usage: UsageInfo
+    intent: Optional[str] = Field(None, description="Detected user intent")
     status_events: List[ProviderStatusEventSchema] = []
 
 
@@ -88,8 +90,8 @@ def to_langchain_message(msg: ChatMessage) -> BaseMessage:
 # 4. FastAPI Application
 # -----------------------------------------------------------------------------
 app = FastAPI(
-    title="MumtaAI - LLM Gateway",
-    description="LLM Chat Gateway with multi-provider fallback and cooldown management.",
+    title="MumtaAI - LLM Gateway with Intent Detection",
+    description="User-facing chatbot backend with offline intent detection and multi-provider failover.",
     version="1.0.0",
 )
 
@@ -109,14 +111,40 @@ async def health():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
     """
-    Main Chat Endpoint backed by LLM Gateway:
-    Receives request -> Gateway executes with automatic fallback -> Returns answer + status events.
+    Main Chat Endpoint:
+    1. Runs code-based Intent Detector on latest user message.
+    2. If conversational (greeting, thanks, goodbye, etc.) -> returns zero-token canned response.
+    3. If MumtaAI product query or unknown -> invokes LLM Gateway with automatic fallback.
     """
     try:
-        # Convert request messages to LangChain messages
+        # Extract the latest user message from conversation history
+        latest_user_content = next(
+            (m.content for m in reversed(request.messages) if m.role == "user"),
+            request.messages[-1].content,
+        )
+
+        # ---------------------------------------------------------------------
+        # STEP 1: Code-Based Intent Detection (Zero LLM / Zero Token)
+        # ---------------------------------------------------------------------
+        intent_result = detect_intent(latest_user_content)
+
+        # If safe to bypass LLM/RAG (e.g. greeting, thanks, goodbye, acknowledgement)
+        if not intent_result.should_use_llm:
+            canned_reply = get_canned_response(intent_result.intent)
+            return ChatResponse(
+                reply=canned_reply,
+                provider="canned_response",
+                model="rule_based",
+                usage=UsageInfo(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+                intent=intent_result.intent,
+                status_events=[],
+            )
+
+        # ---------------------------------------------------------------------
+        # STEP 2: Substantive MumtaAI or Unknown Query -> LLM Gateway Pipeline
+        # ---------------------------------------------------------------------
         langchain_messages = [to_langchain_message(m) for m in request.messages]
 
-        # Execute through the LLM Gateway
         reply, provider_name, model_name, usage, status_events = await gateway.generate(
             messages=langchain_messages,
             temperature=request.temperature,
@@ -128,6 +156,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             provider=provider_name,
             model=model_name,
             usage=UsageInfo(**usage),
+            intent=intent_result.intent,
             status_events=[
                 ProviderStatusEventSchema(
                     type=ev.type,
@@ -140,7 +169,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"LLM Gateway Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat Execution Error: {str(e)}")
 
 
 # -----------------------------------------------------------------------------
@@ -150,6 +179,6 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("PORT", 8000))
-    print(f"\n🚀 MumtaAI LLM Gateway running at http://localhost:{port}")
+    print(f"\n🚀 MumtaAI Chat Server running at http://localhost:{port}")
     print(f"📖 Interactive API Docs available at http://localhost:{port}/docs\n")
     uvicorn.run("src.main:app", host="0.0.0.0", port=port, reload=True)

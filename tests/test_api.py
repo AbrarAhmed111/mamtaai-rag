@@ -1,20 +1,15 @@
 """
 API Integration Tests (tests/test_api.py).
-Verifies /health and /chat endpoints using mocks.
+Verifies /health and /chat endpoints with Intent Detection and Gateway mocking.
 """
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import patch, AsyncMock
 
-try:
-    from src.gateway import ProviderStatusEvent
-    from src.main import app
-    PATCH_TARGET = "src.main.gateway.generate"
-except ImportError:
-    from gateway import ProviderStatusEvent
-    from main import app
-    PATCH_TARGET = "main.gateway.generate"
+from gateway import ProviderStatusEvent
+from main import app
+PATCH_TARGET = "main.gateway.generate"
 
 
 @pytest.fixture
@@ -42,34 +37,14 @@ async def test_chat_validation_error():
 
 
 @pytest.mark.asyncio
-async def test_chat_success_mocked():
-    """Test POST /chat with a mocked Gateway execution."""
-    mock_events = [
-        ProviderStatusEvent(
-            type="provider_status",
-            status="fallback",
-            message="Gemini #1 has reached its current API limit. Switching to another provider...",
-            provider="Gemini #1",
-        ),
-        ProviderStatusEvent(
-            type="provider_status",
-            status="switched",
-            message="Switched to Groq successfully.",
-            provider="Groq",
-        ),
-    ]
-
-    mock_return = (
-        "Hello from Groq!",
-        "Groq",
-        "llama-3.3-70b-versatile",
-        {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-        mock_events,
-    )
-
+async def test_chat_intent_detection_bypasses_gateway():
+    """
+    When user sends a simple greeting ('Hello!'), the Intent Detector intercepts it:
+    - Returns canned response
+    - 0 tokens used
+    - Gateway.generate is NOT called
+    """
     with patch(PATCH_TARGET, new_callable=AsyncMock) as mock_gen:
-        mock_gen.return_value = mock_return
-
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {
                 "messages": [
@@ -79,9 +54,54 @@ async def test_chat_success_mocked():
             response = await client.post("/chat", json=payload)
             assert response.status_code == 200
             data = response.json()
-            assert data["reply"] == "Hello from Groq!"
+            assert data["provider"] == "canned_response"
+            assert data["model"] == "rule_based"
+            assert data["intent"] == "greeting"
+            assert data["usage"]["total_tokens"] == 0
+            assert "MumtaAI" in data["reply"]
+            # Gateway must not have been called!
+            mock_gen.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_chat_domain_query_reaches_gateway():
+    """
+    When user sends a MumtaAI product query ('How do I pair my oximeter?'):
+    - Gateway.generate IS called
+    - Intent is classified as 'oximeter'
+    - Returns answer from gateway
+    """
+    mock_events = [
+        ProviderStatusEvent(
+            type="provider_status",
+            status="switched",
+            message="Switched to Groq successfully.",
+            provider="Groq",
+        ),
+    ]
+    mock_return = (
+        "To pair your oximeter, turn on Bluetooth and tap Pair in the app.",
+        "Groq",
+        "llama-3.3-70b-versatile",
+        {"prompt_tokens": 15, "completion_tokens": 18, "total_tokens": 33},
+        mock_events,
+    )
+
+    with patch(PATCH_TARGET, new_callable=AsyncMock) as mock_gen:
+        mock_gen.return_value = mock_return
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {
+                "messages": [
+                    {"role": "user", "content": "How do I pair my oximeter?"}
+                ]
+            }
+            response = await client.post("/chat", json=payload)
+            assert response.status_code == 200
+            data = response.json()
             assert data["provider"] == "Groq"
-            assert data["model"] == "llama-3.3-70b-versatile"
-            assert len(data["status_events"]) == 2
-            assert data["status_events"][0]["status"] == "fallback"
-            assert data["status_events"][1]["status"] == "switched"
+            assert data["intent"] == "oximeter"
+            assert data["usage"]["total_tokens"] == 33
+            assert len(data["status_events"]) == 1
+            # Gateway must have been called
+            mock_gen.assert_called_once()

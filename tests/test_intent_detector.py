@@ -5,54 +5,29 @@ normalization, and canned responses completely offline.
 """
 
 import pytest
-try:
-    from src.intent_detector import (
-        detect_intent,
-        get_canned_response,
-        INTENT_GREETING,
-        INTENT_THANKS,
-        INTENT_GOODBYE,
-        INTENT_ACKNOWLEDGEMENT,
-        INTENT_CONFIRMATION,
-        INTENT_SIMPLE_NEGATIVE,
-        INTENT_SIMPLE_POSITIVE,
-        INTENT_CANCELLATION,
-        INTENT_SIMPLE_CLARIFICATION,
-        INTENT_CAPABILITY_HELP,
-        INTENT_BABY_PROFILE,
-        INTENT_OXIMETER,
-        INTENT_CRY_ANALYSIS,
-        INTENT_SUBSCRIPTIONS,
-        INTENT_PRIVACY,
-        INTENT_PASSWORD_RESET,
-        INTENT_CAREGIVER,
-        INTENT_GENERAL_PRODUCT,
-        INTENT_UNKNOWN,
-    )
-except ImportError:
-    from intent_detector import (
-        detect_intent,
-        get_canned_response,
-        INTENT_GREETING,
-        INTENT_THANKS,
-        INTENT_GOODBYE,
-        INTENT_ACKNOWLEDGEMENT,
-        INTENT_CONFIRMATION,
-        INTENT_SIMPLE_NEGATIVE,
-        INTENT_SIMPLE_POSITIVE,
-        INTENT_CANCELLATION,
-        INTENT_SIMPLE_CLARIFICATION,
-        INTENT_CAPABILITY_HELP,
-        INTENT_BABY_PROFILE,
-        INTENT_OXIMETER,
-        INTENT_CRY_ANALYSIS,
-        INTENT_SUBSCRIPTIONS,
-        INTENT_PRIVACY,
-        INTENT_PASSWORD_RESET,
-        INTENT_CAREGIVER,
-        INTENT_GENERAL_PRODUCT,
-        INTENT_UNKNOWN,
-    )
+from intent_detector import (
+    detect_intent,
+    get_canned_response,
+    INTENT_GREETING,
+    INTENT_THANKS,
+    INTENT_GOODBYE,
+    INTENT_ACKNOWLEDGEMENT,
+    INTENT_CONFIRMATION,
+    INTENT_SIMPLE_NEGATIVE,
+    INTENT_SIMPLE_POSITIVE,
+    INTENT_CANCELLATION,
+    INTENT_SIMPLE_CLARIFICATION,
+    INTENT_CAPABILITY_HELP,
+    INTENT_BABY_PROFILE,
+    INTENT_OXIMETER,
+    INTENT_CRY_ANALYSIS,
+    INTENT_SUBSCRIPTIONS,
+    INTENT_PRIVACY,
+    INTENT_PASSWORD_RESET,
+    INTENT_CAREGIVER,
+    INTENT_GENERAL_PRODUCT,
+    INTENT_UNKNOWN,
+)
 
 
 # =============================================================================
