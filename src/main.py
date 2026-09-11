@@ -1,6 +1,6 @@
 """
 FastAPI Application Entrypoint
-Configures the app, sets up middleware, and mounts domain routers.
+Configures the app, sets up CORS middleware, and mounts domain routers.
 All business logic is delegated to services and domain route handlers.
 """
 
@@ -25,6 +25,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -36,8 +37,8 @@ async def root():
         "version": settings.API_VERSION,
         "environment": settings.ENVIRONMENT,
         "endpoints": {
-            "chat": "/chat (or /api/chat)",
-            "health": "/health (or /api/health)",
+            "chat": "/api/chat",
+            "health": "/health",
             "docs": "/docs",
         },
     }

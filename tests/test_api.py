@@ -43,10 +43,39 @@ async def test_health():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("origin", ["http://localhost:3000", "https://mamtaai.vercel.app"])
+async def test_cors_preflight_allowed_origins(origin):
+    """Test CORS preflight OPTIONS request for frontend origins."""
+    headers = {
+        "Origin": origin,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Content-Type",
+    }
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.options("/api/chat", headers=headers)
+        assert response.status_code == 200
+        assert response.headers.get("access-control-allow-origin") == origin
+        assert "POST" in response.headers.get("access-control-allow-methods", "")
+        assert response.headers.get("access-control-allow-credentials") == "true"
+
+
+@pytest.mark.asyncio
+async def test_cors_disallowed_origin():
+    """Test that unauthorized origin does not receive CORS allow header."""
+    headers = {
+        "Origin": "https://malicious-site.com",
+        "Access-Control-Request-Method": "POST",
+    }
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.options("/api/chat", headers=headers)
+        assert response.headers.get("access-control-allow-origin") is None
+
+
+@pytest.mark.asyncio
 async def test_chat_validation_error():
     """Test that empty messages array returns 422."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.post("/chat", json={"messages": []})
+        response = await client.post("/api/chat", json={"messages": []})
         assert response.status_code == 422
 
 
@@ -65,7 +94,7 @@ async def test_chat_intent_detection_bypasses_gateway():
                     {"role": "user", "content": "Hello!"}
                 ]
             }
-            response = await client.post("/chat", json=payload)
+            response = await client.post("/api/chat", json=payload)
             assert response.status_code == 200
             data = response.json()
             assert data["provider"] == "canned_response"
@@ -109,7 +138,7 @@ async def test_chat_domain_query_reaches_gateway():
                     {"role": "user", "content": "How do I pair my oximeter?"}
                 ]
             }
-            response = await client.post("/chat", json=payload)
+            response = await client.post("/api/chat", json=payload)
             assert response.status_code == 200
             data = response.json()
             assert data["provider"] == "Groq"

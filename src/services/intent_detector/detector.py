@@ -6,8 +6,8 @@ Operates completely offline without LLMs or cloud APIs.
 import re
 from typing import List, Tuple, Optional
 
-from intent_detector.normalizer import normalize_text, strip_punctuation
-from intent_detector.types import (
+from .normalizer import normalize_text, strip_punctuation
+from .types import (
     IntentResult,
     # Conversational (should_use_llm = False)
     INTENT_GREETING,

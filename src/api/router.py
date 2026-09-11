@@ -9,12 +9,10 @@ from api.routes.chat import router as chat_router
 
 api_router = APIRouter()
 
-# Include Domain Routers
+# Health check endpoint: GET /health
 api_router.include_router(health_router)
-api_router.include_router(chat_router)
 
-# Also expose under /api prefix for standard REST convention: /api/chat, /api/health
+# Feature & Domain routes with /api prefix: POST /api/chat
 api_router.include_router(chat_router, prefix="/api")
-api_router.include_router(health_router, prefix="/api")
 
 __all__ = ["api_router"]

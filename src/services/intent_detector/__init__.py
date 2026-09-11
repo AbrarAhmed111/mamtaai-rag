@@ -4,7 +4,7 @@ Provides deterministic, code-based intent classification and canned responses
 to safely bypass LLM/RAG calls for simple conversational queries.
 """
 
-from intent_detector.types import (
+from .types import (
     IntentResult,
     # Non-LLM Intents
     INTENT_GREETING,
@@ -41,8 +41,8 @@ from intent_detector.types import (
     INTENT_GENERAL_PRODUCT,
     INTENT_UNKNOWN,
 )
-from intent_detector.detector import detect_intent
-from intent_detector.canned_responses import CANNED_RESPONSES, get_canned_response
+from .detector import detect_intent
+from .canned_responses import CANNED_RESPONSES, get_canned_response
 
 __all__ = [
     "detect_intent",

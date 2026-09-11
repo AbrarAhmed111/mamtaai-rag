@@ -4,7 +4,7 @@ Kept strictly separate from detection logic.
 """
 
 from typing import Dict
-from intent_detector.types import (
+from .types import (
     INTENT_GREETING,
     INTENT_THANKS,
     INTENT_GOODBYE,
