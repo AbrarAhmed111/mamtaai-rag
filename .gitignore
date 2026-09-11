@@ -54,3 +54,6 @@ tmp/
 
 
 /docs
+/.agents
+/.agents/rules
+.agents/rules/dont-run-llm-api-tests.md
