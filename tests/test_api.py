@@ -166,3 +166,23 @@ async def test_chat_domain_query_reaches_gateway():
             assert data["usage"]["total_tokens"] == 33
             assert len(data["status_events"]) == 1
             mock_gen.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_fast_prompts():
+    """Verify GET /api/chat/fast-prompts returns product-only prompts."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/api/chat/fast-prompts")
+        assert response.status_code == 200
+        data = response.json()
+        assert "prompts" in data
+        assert len(data["prompts"]) >= 5
+        for p in data["prompts"]:
+            assert "label" in p
+            assert "prompt" in p
+            assert "category" in p
+            # Ensure no individual account queries exist
+            lower_prompt = p["prompt"].lower()
+            assert "my password" not in lower_prompt
+            assert "my account balance" not in lower_prompt
+

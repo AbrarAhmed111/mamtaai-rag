@@ -45,3 +45,16 @@ class ChatResponse(BaseModel):
         default_factory=list,
         description="Failover or provider status event history",
     )
+
+
+class FastPrompt(BaseModel):
+    """Suggested quick action / fast prompt button for the chatbot UI."""
+    label: str = Field(..., description="Short button text")
+    prompt: str = Field(..., description="Full prompt text sent when clicked")
+    category: str = Field(default="Product", description="Topic category")
+
+
+class FastPromptsResponse(BaseModel):
+    """List of product-focused fast prompt suggestions."""
+    prompts: List[FastPrompt]
+

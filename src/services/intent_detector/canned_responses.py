@@ -26,61 +26,64 @@ from .types import (
 CANNED_RESPONSES: Dict[str, str] = {
     INTENT_GREETING: (
         "Hello! I am your MumtaAI Product Guide & Support Assistant. "
-        "How can I help you with your account, baby profiles, cry analysis, or oximeter today?"
+        "I can help explain MumtaAI features, baby profile management, cry analysis, smart oximeter pairing, and subscription plans. "
+        "How can I assist you with the platform today?"
     ),
     INTENT_WELLBEING: (
-        "I'm doing great, thank you for asking! I'm here and ready to help you with MumtaAI - "
-        "such as setting up baby profiles, pairing your smart oximeter, or understanding cry analysis. How can I assist you today?"
+        "I'm doing great, thank you for asking! I'm here and ready to help you learn about MumtaAI — "
+        "including setting up baby profiles, pairing your smart oximeter, and how cry analysis works. What can I answer for you?"
     ),
     INTENT_BOT_IDENTITY: (
-        "I am the MumtaAI Product Guide & Support Assistant! I'm an intelligent assistant built to help parents "
-        "and caregivers navigate MumtaAI's smart monitoring tools, cry insights, baby profiles, and account settings."
+        "I am the MumtaAI Product Guide & Support Assistant! I'm an AI assistant designed to help parents "
+        "and caregivers navigate MumtaAI's product features, smart monitoring tools, cry insights, and subscription plans."
     ),
     INTENT_COMPLIMENT: (
-        "Thank you so much! I'm delighted to assist. Let me know if you have any questions about your baby's data or MumtaAI features."
+        "Thank you so much! I'm glad I could help. Let me know if you have any other questions about MumtaAI features or guides."
     ),
     INTENT_PLEASANTRY: (
-        "Nice to connect with you! I'm ready to guide you through any MumtaAI features whenever you need."
+        "Nice to connect with you! I'm ready to guide you through any MumtaAI product features whenever you need."
     ),
     INTENT_APOLOGY: (
-        "No worries at all! How can I assist you with MumtaAI today?"
+        "No worries at all! How can I assist you with MumtaAI product guides today?"
     ),
     INTENT_PING: (
-        "I'm online and ready! What would you like help with in MumtaAI?"
+        "I'm online and ready! What would you like to know about MumtaAI features or hardware?"
     ),
     INTENT_THANKS: (
-        "You're very welcome! I'm always here if you have any more questions about MumtaAI."
+        "You're very welcome! Feel free to ask anytime if you need help understanding MumtaAI features."
     ),
     INTENT_GOODBYE: (
-        "Goodbye! Take care, and feel free to reach out anytime you need support."
+        "Goodbye! Take care, and feel free to ask anytime you need guidance with MumtaAI."
     ),
     INTENT_ACKNOWLEDGEMENT: (
-        "Understood. Let me know whenever you're ready to explore another MumtaAI feature."
+        "Understood. Let me know whenever you'd like to explore another MumtaAI feature or guide."
     ),
     INTENT_CONFIRMATION: (
-        "Great! Let me know if there's anything else you'd like to check or configure in MumtaAI."
+        "Great! Let me know if there's anything else about MumtaAI you would like explained."
     ),
     INTENT_SIMPLE_NEGATIVE: (
-        "No problem at all. Just ask whenever you need assistance with MumtaAI."
+        "No problem at all. Just ask whenever you have a question about MumtaAI features or setup."
     ),
     INTENT_SIMPLE_POSITIVE: (
-        "Wonderful! Let me know if you have any other questions."
+        "Wonderful! Let me know if you have any questions about MumtaAI."
     ),
     INTENT_CANCELLATION: (
-        "Cancelled. Is there anything else about MumtaAI I can assist you with?"
+        "Cancelled. Is there anything else about MumtaAI features I can assist you with?"
     ),
     INTENT_SIMPLE_CLARIFICATION: (
-        "Could you please specify which MumtaAI feature, step, or topic you'd like me to explain?"
+        "Could you please specify which MumtaAI feature, device setup step, or topic you'd like me to explain?"
     ),
     INTENT_CAPABILITY_HELP: (
-        "I am the MumtaAI Product Guide & Support Assistant. I can guide you through:\n"
-        "• Setting up baby profiles & multiple babies\n"
-        "• Inviting caregivers & managing permissions\n"
-        "• Cry analysis & recordings\n"
-        "• Smart oximeter pairing, readings & alert thresholds\n"
-        "• Subscription tiers (Free, Plus, Pro) & billing\n"
-        "• Account settings & privacy\n\n"
-        "What would you like assistance with?"
+        "I am the MumtaAI Product Guide & Support Assistant. I provide information regarding:\n"
+        "• What is MumtaAI & platform features\n"
+        "• Setting up baby profiles & multi-baby limits\n"
+        "• Inviting caregivers & permission levels\n"
+        "• How acoustic cry analysis works & cry categories\n"
+        "• Smart oximeter pairing, live SpO2/pulse readings & alert thresholds\n"
+        "• Subscription plans (Free, Plus, Pro) & feature comparison\n"
+        "• Data privacy and non-diagnostic medical disclaimers\n\n"
+        "*(Note: I am a product documentation assistant and cannot access or modify private individual accounts. For private settings or vitals, please check your Dashboard.)*\n\n"
+        "What product topic can I help you with today?"
     ),
 }
 

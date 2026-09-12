@@ -7,6 +7,7 @@ Encapsulates chatbot business logic:
 """
 
 import logging
+from typing import List
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 
 from schemas.chat import (
@@ -15,6 +16,8 @@ from schemas.chat import (
     ChatResponse,
     UsageInfo,
     ProviderStatusEventSchema,
+    FastPrompt,
+    FastPromptsResponse,
 )
 from services.gateway import LLMGateway
 from services.intent_detector import detect_intent, get_canned_response
@@ -28,6 +31,50 @@ gateway = LLMGateway(
     max_attempts=settings.GATEWAY_MAX_ATTEMPTS,
     cooldown_seconds=settings.GATEWAY_COOLDOWN_SECONDS,
 )
+
+PRODUCT_SYSTEM_PROMPT = (
+    "You are the official MumtaAI Product Guide & Support Assistant. "
+    "Your purpose is to provide clear, helpful, and accurate guidance about MumtaAI's product features, "
+    "smart Bluetooth oximeter setup, acoustic cry analysis, caregiver sharing, and subscription tiers.\n\n"
+    "CRITICAL SCOPE BOUNDARY:\n"
+    "- You are strictly a product knowledge and documentation assistant.\n"
+    "- You DO NOT have access to individual user account records, private databases, personal baby vitals, or billing details.\n"
+    "- If a user asks about their specific personal account details (such as 'What is my baby's current SpO2?', 'Update my password', 'Show my recent cry logs'), "
+    "politely clarify that you provide product guidance only and do not have access to private account data. Direct them to their Dashboard or Settings page."
+)
+
+PRODUCT_FAST_PROMPTS: List[FastPrompt] = [
+    FastPrompt(
+        label="What is MumtaAI?",
+        prompt="What is MumtaAI and how does it help parents track infant health?",
+        category="Overview",
+    ),
+    FastPrompt(
+        label="Pair Smart Oximeter",
+        prompt="How do I pair my smart Bluetooth oximeter with MumtaAI?",
+        category="Hardware",
+    ),
+    FastPrompt(
+        label="Cry Analysis Guide",
+        prompt="How does acoustic cry analysis work and what cry types are recognized?",
+        category="Features",
+    ),
+    FastPrompt(
+        label="Subscription Plans",
+        prompt="What are the differences between the Free, Plus, and Pro subscription plans?",
+        category="Pricing",
+    ),
+    FastPrompt(
+        label="Caregiver Sharing",
+        prompt="How do caregiver permissions and family sharing work in MumtaAI?",
+        category="Features",
+    ),
+    FastPrompt(
+        label="Oximeter Alert Thresholds",
+        prompt="What SpO2 and pulse rate alert thresholds does MumtaAI monitor?",
+        category="Hardware",
+    ),
+]
 
 
 def to_langchain_message(msg: ChatMessage) -> BaseMessage:
@@ -45,6 +92,10 @@ class ChatService:
 
     def __init__(self, gateway_instance: LLMGateway = gateway):
         self.gateway = gateway_instance
+
+    def get_fast_prompts(self) -> FastPromptsResponse:
+        """Returns product-focused fast prompt suggestions for the chatbot UI."""
+        return FastPromptsResponse(prompts=PRODUCT_FAST_PROMPTS)
 
     async def process_chat(self, request: ChatRequest) -> ChatResponse:
         """
@@ -91,7 +142,13 @@ class ChatService:
             f"-> Used: [CLOUD MODEL] | Routing to LLM Gateway across configured providers..."
         )
 
-        langchain_messages = [to_langchain_message(m) for m in clean_messages]
+        langchain_messages: List[BaseMessage] = []
+        # Prepend product system prompt if not present
+        has_system = any(m.role == "system" for m in clean_messages)
+        if not has_system:
+            langchain_messages.append(SystemMessage(content=PRODUCT_SYSTEM_PROMPT))
+
+        langchain_messages.extend([to_langchain_message(m) for m in clean_messages])
 
         reply, provider_name, model_name, usage, status_events = await self.gateway.generate(
             messages=langchain_messages,
